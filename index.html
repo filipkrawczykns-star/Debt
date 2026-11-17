@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<meta name="description" content="Prosty kalkulator spłaty długu w PLN i EUR">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Spłata długu</title>
+<style>
+:root{--bg:#0f1115;--card:#181b22;--line:#262a33;--text:#e8eaed;--muted:#8b93a1;--pln:#e5484d;--eur:#3b82f6;--ok:#30a46c;--warn:#f5a524}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg)}
+body{margin:0 auto;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);max-width:560px;
+  padding:calc(16px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(48px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left))}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+h1{font-size:18px;margin:0}
+.iconbtn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:10px;padding:7px 11px;font-size:14px}
+.total{font-size:12px;color:var(--muted);margin:-6px 0 12px}
+.banner{display:flex;align-items:center;gap:10px;background:#f5a52418;border:1px solid #f5a52455;color:var(--warn);border-radius:12px;padding:10px 12px;font-size:13px;margin-bottom:12px}
+.banner span{flex:1}
+.banner button{background:var(--warn);color:#111;border:0;border-radius:8px;padding:7px 10px;font-weight:700;font-size:13px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.col{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;border-top:3px solid var(--c);min-width:0}
+.cur{font-size:12px;letter-spacing:.08em;color:var(--c);font-weight:700}
+.debt{font-size:21px;font-weight:700;margin:4px 0 2px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.sub{font-size:11px;color:var(--muted)}
+.bar{height:6px;background:var(--line);border-radius:3px;margin:8px 0 10px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--c);width:0;transition:width .4s}
+label{font-size:11px;color:var(--muted);display:block;margin:8px 0 3px}
+input{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px;font-size:16px;font-family:inherit;min-width:0}
+input[type=date]{padding:9px 6px;font-size:14px;color-scheme:dark}
+input:focus{outline:none;border-color:var(--c,var(--ok))}
+.pay{width:100%;margin-top:10px;background:var(--c);color:#fff;border:0;border-radius:10px;padding:11px;font-size:15px;font-weight:600}
+.pay:active{opacity:.75}
+.done{color:var(--ok)}
+details{margin-top:14px;background:var(--card);border:1px solid var(--line);border-radius:16px}
+summary{padding:14px;font-weight:600;list-style:none;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+summary::-webkit-details-marker{display:none}
+summary small{color:var(--muted);font-weight:400;margin-left:6px}
+.chev{transition:transform .2s;color:var(--muted)}
+details[open] .chev{transform:rotate(90deg)}
+.list{padding:0 14px 8px}
+.row{display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--line)}
+.dot{width:8px;height:8px;border-radius:50%;flex:none}
+.row .d{color:var(--muted);font-size:13px;flex:none;width:82px}
+.row .a{flex:1;text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.del{background:none;border:0;color:var(--muted);font-size:20px;line-height:1;padding:2px 4px}
+.empty{color:var(--muted);font-size:14px;padding:4px 0 10px}
+.month{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:12px 0 2px}
+dialog{background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:16px;width:min(92vw,420px);padding:18px}
+dialog::backdrop{background:#000a}
+dialog h2{font-size:17px;margin:0 0 4px}
+dialog h3{font-size:14px;margin:18px 0 4px;padding-top:14px;border-top:1px solid var(--line)}
+dialog p{font-size:13px;color:var(--muted);margin:0 0 6px}
+.drow{display:flex;gap:8px;margin-top:14px}
+.drow button{flex:1;padding:11px;border-radius:10px;border:1px solid var(--line);background:none;color:var(--text);font-size:15px}
+.drow .primary{background:var(--ok);border-color:var(--ok);color:#fff;font-weight:600}
+.drow .danger{color:var(--pln);border-color:#e5484d55}
+.toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(10px);background:#2a2f3a;padding:10px 14px;border-radius:12px;font-size:14px;opacity:0;transition:.2s;pointer-events:none;display:flex;gap:12px;align-items:center;max-width:92vw;box-shadow:0 6px 20px #0008;z-index:10}
+.toast.show{opacity:1;transform:translateX(-50%);pointer-events:auto}
+.toast button{background:none;border:0;color:#7cb7ff;font-weight:700;font-size:14px}
+.meta{font-size:12px;color:var(--muted);margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Spłata długu</h1>
+  <button class="iconbtn" id="btnSettings">⚙︎ Ustawienia</button>
+</header>
+<div class="total" id="totalInfo"></div>
+<div class="banner" id="backupBanner" hidden><span id="backupText"></span><button id="bannerBtn">Zapisz kopię</button></div>
+
+<div class="cols">
+  <section class="col" style="--c:var(--pln)" data-cur="PLN">
+    <div class="cur">PLN</div>
+    <div class="debt" data-f="rem">—</div>
+    <div class="sub" data-f="info"></div>
+    <div class="bar"><i data-f="bar"></i></div>
+    <label>Kwota raty</label>
+    <input type="text" inputmode="decimal" placeholder="0,00" data-f="amt">
+    <label>Data wpłaty</label>
+    <input type="date" data-f="date">
+    <button class="pay" data-f="pay">Spłać</button>
+  </section>
+  <section class="col" style="--c:var(--eur)" data-cur="EUR">
+    <div class="cur">EUR</div>
+    <div class="debt" data-f="rem">—</div>
+    <div class="sub" data-f="info"></div>
+    <div class="bar"><i data-f="bar"></i></div>
+    <label>Kwota raty</label>
+    <input type="text" inputmode="decimal" placeholder="0,00" data-f="amt">
+    <label>Data wpłaty</label>
+    <input type="date" data-f="date">
+    <button class="pay" data-f="pay">Spłać</button>
+  </section>
+</div>
+
+<details id="hist">
+  <summary><span>Historia wpłat<small id="histCount"></small></span><span class="chev">›</span></summary>
+  <div class="list" id="list"></div>
+</details>
+
+<dialog id="dlg">
+  <form id="dlgForm">
+    <h2>Kwoty długu</h2>
+    <p>Całkowity dług na start (przed wpłatami z historii).</p>
+    <label>Dług w PLN</label>
+    <input type="text" inputmode="decimal" id="startPLN" placeholder="np. 25 000">
+    <label>Dług w EUR</label>
+    <input type="text" inputmode="decimal" id="startEUR" placeholder="np. 8 000">
+    <div class="drow">
+      <button type="button" id="dlgCancel">Zamknij</button>
+      <button type="submit" class="primary">Zapisz kwoty</button>
+    </div>
+
+    <h3>Kopia zapasowa</h3>
+    <p>Zapisz plik z danymi (np. na Dysk Google). Przyda się przy zmianie telefonu lub wyczyszczeniu danych.</p>
+    <div class="drow">
+      <button type="button" id="btnExport">Zapisz kopię</button>
+      <button type="button" id="btnImport">Wczytaj kopię</button>
+    </div>
+    <input type="file" id="fileIn" accept="application/json,.json" hidden>
+    <div class="meta" id="backupMeta"></div>
+
+    <h3>Dane</h3>
+    <div class="drow">
+      <button type="button" class="danger" id="btnReset">Wyczyść wszystko</button>
+    </div>
+    <div class="meta" id="storageMeta"></div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast"><span id="toastMsg"></span><button id="toastBtn" type="button" hidden>Cofnij</button></div>
+
+<script>
+const KEY='splata-dlugu-v1';
+const BACKUP_DAYS=30;
+const CURS=['PLN','EUR'];
+const COLORS={PLN:'var(--pln)',EUR:'var(--eur)'};
+const fmt={};CURS.forEach(c=>fmt[c]=new Intl.NumberFormat('pl-PL',{style:'currency',currency:c}));
+const money=(c,cents)=>fmt[c].format(cents/100);
+const $=id=>document.getElementById(id);
+const MONTHS=['styczeń','luty','marzec','kwiecień','maj','czerwiec','lipiec','sierpień','wrzesień','październik','listopad','grudzień'];
+
+function blank(){return{start:{PLN:0,EUR:0},payments:[],lastBackup:null}}
+function valid(s){return s&&s.start&&Number.isInteger(s.start.PLN)&&Number.isInteger(s.start.EUR)&&Array.isArray(s.payments)&&
+  s.payments.every(p=>CURS.includes(p.cur)&&Number.isInteger(p.cents)&&p.cents>0&&/^\d{4}-\d{2}-\d{2}$/.test(p.date))}
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(valid(s))return s}catch(e){}return null}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){toast('Nie udało się zapisać danych!')}}
+function today(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)}
+function toCents(v){v=String(v).replace(/[\s ]/g,'').replace(',','.');if(!/^\d*\.?\d{0,2}$/.test(v)||v===''||v==='.')return null;const n=Math.round(parseFloat(v)*100);return n>0?n:null}
+function fmtDate(s){const[y,m,d]=s.split('-');return `${d}.${m}.${y}`}
+function centsToInput(c){return c?String(c/100).replace('.',','):''}
+
+let st=load();
+
+let toastT,undoFn=null;
+function toast(msg,undo){
+  $('toastMsg').textContent=msg;undoFn=undo||null;$('toastBtn').hidden=!undo;
+  $('toast').classList.add('show');clearTimeout(toastT);
+  toastT=setTimeout(()=>{$('toast').classList.remove('show');undoFn=null},undo?5000:2800);
+}
+$('toastBtn').onclick=()=>{if(undoFn){undoFn();undoFn=null}$('toast').classList.remove('show')};
+
+function paidOf(c){return st?st.payments.filter(p=>p.cur===c).reduce((a,p)=>a+p.cents,0):0}
+
+function renderBanner(){
+  const b=$('backupBanner');
+  if(!st||!st.payments.length){b.hidden=true;return}
+  if(!st.lastBackup){b.hidden=false;$('backupText').textContent='Nie masz jeszcze kopii zapasowej danych.';return}
+  const days=Math.floor((Date.now()-new Date(st.lastBackup).getTime())/864e5);
+  const newer=st.payments.some(p=>p.id>new Date(st.lastBackup).getTime());
+  if(days>=BACKUP_DAYS&&newer){b.hidden=false;$('backupText').textContent=`Ostatnia kopia ${days} dni temu.`}else b.hidden=true;
+}
+
+function render(){
+  const s=st||blank();
+  document.querySelectorAll('.col').forEach(col=>{
+    const c=col.dataset.cur,f=n=>col.querySelector(`[data-f=${n}]`);
+    const start=s.start[c],paid=paidOf(c),rem=start-paid;
+    const pct=start>0?Math.min(100,paid/start*100):0;
+    if(start===0){f('rem').textContent=money(c,0);f('info').textContent='brak długu';}
+    else if(rem<=0){f('rem').innerHTML='<span class="done">Spłacone ✓</span>';f('info').textContent=rem<0?`nadpłata ${money(c,-rem)}`:`spłacono ${money(c,paid)}`;}
+    else{f('rem').textContent=money(c,rem);f('info').textContent=`spłacono ${money(c,paid)} (${pct.toFixed(1).replace('.',',')}%)`;}
+    f('bar').style.width=pct+'%';
+    if(!f('date').value)f('date').value=today();
+  });
+  const n=st?st.payments.length:0;
+  $('histCount').textContent=n?`(${n})`:'';
+  $('totalInfo').textContent=(s.start.PLN||s.start.EUR)?`Dług początkowy: ${money('PLN',s.start.PLN)} · ${money('EUR',s.start.EUR)}`:'';
+  renderBanner();
+  const list=$('list');list.innerHTML='';
+  if(!n){list.innerHTML='<div class="empty">Brak wpłat.</div>';return}
+  const sorted=[...st.payments].sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
+  let lastM='';
+  sorted.forEach(p=>{
+    const m=p.date.slice(0,7);
+    if(m!==lastM){lastM=m;const h=document.createElement('div');h.className='month';h.textContent=`${MONTHS[+m.slice(5)-1]} ${m.slice(0,4)}`;list.appendChild(h)}
+    const r=document.createElement('div');r.className='row';
+    r.innerHTML=`<span class="dot" style="background:${COLORS[p.cur]}"></span><span class="d">${fmtDate(p.date)}</span><span class="a">${money(p.cur,p.cents)}</span><button class="del" type="button" aria-label="Usuń">×</button>`;
+    r.querySelector('.del').onclick=()=>{
+      const i=st.payments.findIndex(x=>x.id===p.id);if(i<0)return;
+      const [rm]=st.payments.splice(i,1);save();render();
+      toast(`Usunięto ${money(rm.cur,rm.cents)}`,()=>{st.payments.push(rm);save();render()});
+    };
+    list.appendChild(r);
+  });
+}
+
+document.querySelectorAll('.col').forEach(col=>{
+  const c=col.dataset.cur,f=n=>col.querySelector(`[data-f=${n}]`);
+  const go=()=>{
+    if(!st||!st.start[c]){toast(`Najpierw ustaw dług w ${c} (⚙︎ Ustawienia)`);openDlg();return}
+    const cents=toCents(f('amt').value);
+    if(!cents){toast('Wpisz poprawną kwotę, np. 1500 lub 1500,50');f('amt').focus();return}
+    const date=f('date').value||today();
+    if(date>today()){toast('Data wpłaty nie może być z przyszłości');return}
+    const rem=st.start[c]-paidOf(c);
+    if(cents>rem){toast(`Rata większa niż pozostały dług (${money(c,Math.max(rem,0))})`);return}
+    let id=Date.now();while(st.payments.some(x=>x.id===id))id++;
+    const p={id,cur:c,cents,date};
+    st.payments.push(p);save();f('amt').value='';f('amt').blur();render();
+    toast(`Zapisano ${money(c,cents)} · ${fmtDate(date)}`,()=>{st.payments=st.payments.filter(x=>x.id!==p.id);save();render()});
+  };
+  f('pay').onclick=go;
+  f('amt').addEventListener('keydown',e=>{if(e.key==='Enter')go()});
+});
+
+/* ---------- Ustawienia ---------- */
+function openDlg(){
+  const s=st||blank();
+  $('startPLN').value=centsToInput(s.start.PLN);
+  $('startEUR').value=centsToInput(s.start.EUR);
+  $('backupMeta').textContent=s.lastBackup?`Ostatnia kopia: ${new Date(s.lastBackup).toLocaleString('pl-PL')}`:'Brak kopii zapasowej.';
+  $('dlg').showModal();
+}
+$('btnSettings').onclick=openDlg;
+$('dlgCancel').onclick=()=>$('dlg').close();
+$('dlgForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const p=$('startPLN').value.trim(),u=$('startEUR').value.trim();
+  const cp=p?toCents(p):0,cu=u?toCents(u):0;
+  if(cp===null||cu===null){toast('Niepoprawna kwota');return}
+  if(!cp&&!cu){toast('Wpisz przynajmniej jedną kwotę');return}
+  if(!st)st=blank();
+  st.start={PLN:cp,EUR:cu};save();$('dlg').close();render();toast('Zapisano kwoty długu');
+});
+
+/* ---------- Kopia zapasowa ---------- */
+async function exportData(){
+  if(!st){toast('Brak danych do zapisania');return}
+  const stamp=new Date().toISOString();
+  const data=JSON.stringify({app:'splata-dlugu',version:1,exported:stamp,start:st.start,payments:st.payments},null,2);
+  const name=`Splata-dlugu-backup-${today()}.json`;
+  const file=new File([data],name,{type:'application/json'});
+  let ok=false;
+  try{
+    if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'Kopia — Spłata długu'});ok=true}
+  }catch(e){if(e.name==='AbortError')return}
+  if(!ok){
+    const a=document.createElement('a');a.href=URL.createObjectURL(file);a.download=name;
+    document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  }
+  st.lastBackup=stamp;save();render();
+  $('backupMeta').textContent=`Ostatnia kopia: ${new Date(stamp).toLocaleString('pl-PL')}`;
+  toast('Kopia zapisana');
+}
+$('btnExport').onclick=exportData;
+$('bannerBtn').onclick=exportData;
+$('btnImport').onclick=()=>$('fileIn').click();
+let importArm=null;
+$('fileIn').onchange=async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  try{
+    const d=JSON.parse(await f.text());
+    const s={start:d.start,payments:d.payments,lastBackup:d.exported||null};
+    if(d.app!=='splata-dlugu'||!valid(s))throw 0;
+    const prev=st;
+    st=s;save();render();$('dlg').close();
+    toast(`Wczytano kopię (${s.payments.length} wpłat)`,()=>{st=prev;if(st)save();else{try{localStorage.removeItem(KEY)}catch(e){}}render()});
+  }catch(err){toast('To nie jest poprawny plik kopii')}
+};
+
+let resetArm=false;
+$('btnReset').onclick=()=>{
+  if(!resetArm){resetArm=true;$('btnReset').textContent='Na pewno? Dotknij ponownie';setTimeout(()=>{resetArm=false;$('btnReset').textContent='Wyczyść wszystko'},3000);return}
+  resetArm=false;$('btnReset').textContent='Wyczyść wszystko';
+  const prev=st;st=null;try{localStorage.removeItem(KEY)}catch(e){}
+  $('dlg').close();render();
+  toast('Wyczyszczono dane',()=>{st=prev;save();render()});
+};
+
+/* ---------- Trwała pamięć + offline ---------- */
+async function persist(){
+  try{
+    if(!navigator.storage||!navigator.storage.persist)return;
+    let p=await navigator.storage.persisted();
+    if(!p)p=await navigator.storage.persist();
+    $('storageMeta').textContent=p?'Pamięć trwała: włączona ✓':'Pamięć trwała: niedostępna — zainstaluj aplikację i rób kopie.';
+  }catch(e){}
+}
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
+
+render();
+persist();
+if(!st)setTimeout(openDlg,300);
+</script>
+</body>
+</html>
